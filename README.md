@@ -1,43 +1,43 @@
 # Smart Content Moderator API
 
-## Kurulum
+## Setup
 
-1. Gerekli paketleri yükleyin:
+1. Install the required packages:
    ```sh
    pip install -r requirements.txt
    ```
-2. `.env` dosyanızı oluşturun ve API anahtarlarınızı girin (örnek için `.env.example` dosyasına bakın).
-3. Veritabanı tablolarını oluşturun:
+2. Create your `.env` file and add your API keys (see `.env.example` for reference).
+3. Create the database tables:
    ```sh
    python -m app.create_tables
    ```
-4. Uygulamayı başlatın:
+4. Start the application:
    ```sh
    uvicorn app.main:app --reload
    ```
 
-## API Endpointleri
+## API Endpoints
 
 - `POST /api/v1/moderate/text`
 - `POST /api/v1/moderate/image`
 - `GET /api/v1/moderate/analytics/summary?user=mail@example.com`
 
-### Örnek İstek (Text)
+### Example Request (Text)
 ```sh
-Invoke-RestMethod -Uri "http://127.0.0.1:8000/api/v1/moderate/text" -Method Post -Headers @{"Content-Type"="application/json"} -Body '{"email": "test@example.com", "text": "Test mesajı."}'
+Invoke-RestMethod -Uri "http://127.0.0.1:8000/api/v1/moderate/text" -Method Post -Headers @{"Content-Type"="application/json"} -Body '{"email": "test@example.com", "text": "Test message."}'
 ```
 
-### Örnek İstek (Image)
+### Example Request (Image)
 ```sh
 Invoke-RestMethod -Uri "http://127.0.0.1:8000/api/v1/moderate/image" -Method Post -Headers @{"Content-Type"="application/json"} -Body '{"email": "test@example.com", "image_url": "https://via.placeholder.com/150"}'
 ```
 
-## Test
+## Testing
 
 ```sh
 pytest
 ```
 
-## Notlar
-- OpenAI ve Slack entegrasyonu için anahtarlarınızı `.env` dosyasına ekleyin.
-- Docker desteği için ek dosyalar sağlanacaktır.
+## Notes
+- Add your API keys for OpenAI and Slack integration in the `.env` file.
+- Additional files will be provided for Docker support.

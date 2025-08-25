@@ -8,10 +8,6 @@ import logging
 try:
     import google.generativeai as genai
 except ImportError:
-    genai = None
-try:
-    import openai
-except ImportError:
     openai = None
 from PIL import Image
 import io
@@ -27,12 +23,12 @@ logger = logging.getLogger("content_moderator")
 
 
 def hash_content(content: str) -> str:
-    """İçeriği SHA-256 ile hash'le"""
+    """Hash the content with SHA-256"""
     return hashlib.sha256(content.encode()).hexdigest()
 
 
 def image_to_base64(url: str) -> str:
-    """Resim URL'sini base64 formatına çevir"""
+    """Convert image URL to base64 format"""
     try:
         response = requests.get(url)
         response.raise_for_status()
@@ -41,25 +37,25 @@ def image_to_base64(url: str) -> str:
         img.save(buffered, format="PNG")
         return base64.b64encode(buffered.getvalue()).decode()
     except Exception as e:
-        print(f"Resim indirme hatası: {e}")
+        print(f"Image download error: {e}")
         return ""
 
 
 def moderate_text(text: str) -> dict:
-    """Metni Gemini veya OpenAI ile sınıflandır"""
+    """Classify text using Gemini or OpenAI"""
     if GEMINI_API_KEY and genai:
         try:
             genai.configure(api_key=GEMINI_API_KEY)
             model = genai.GenerativeModel("gemini-1.5-flash")
             prompt = f"""
-            Bu metni toksik, spam, taciz veya güvenli olarak sınıflandır. 
-            Yanıtı JSON formatında şu şekilde döndür:
+            Classify this text as toxic, spam, harassment, or safe.
+            Return the answer in JSON format as follows:
             {{
                 "classification": "toxic/spam/harassment/safe",
                 "confidence": 0.0-1.0,
-                "reasoning": "Gerekçe burada"
+                "reasoning": "Reason here"
             }}
-            Metin: {text}
+            Text: {text}
             """
             response = model.generate_content(prompt)
             llm_response = response.text
@@ -71,7 +67,8 @@ def moderate_text(text: str) -> dict:
                 "llm_response": llm_response
             }
         except Exception as e:
-            logger.error(f"Gemini hatası: {e}")
+            logger.error(f"Gemini error: {e}")
+            pass
     elif OPENAI_API_KEY and openai:
         try:
             openai.api_key = OPENAI_API_KEY
@@ -100,14 +97,14 @@ def moderate_text(text: str) -> dict:
         except Exception as e:
             logger.error(f"OpenAI error: {e}")
     # Dummy fallback
-    logger.warning("LLM API anahtarı yok veya modül eksik, dummy sınıflandırma kullanılıyor.")
+    logger.warning("No LLM API key or module missing, using dummy classification.")
     if "toxic" in text.lower():
-        return {"classification": "toxic", "confidence": 0.95, "reasoning": "Toxic kelimesi geçti.", "llm_response": "..."}
-    return {"classification": "safe", "confidence": 1.0, "reasoning": "Metin güvenli.", "llm_response": "..."}
+        return {"classification": "toxic", "confidence": 0.95, "reasoning": "The word 'toxic' was found.", "llm_response": "..."}
+    return {"classification": "safe", "confidence": 1.0, "reasoning": "Text is safe.", "llm_response": "..."}
 
 
 def moderate_image(image_url: str) -> dict:
-    """Resmi Gemini ile veya dummy olarak sınıflandır"""
+    """Classify image using Gemini or dummy logic"""
     if GEMINI_API_KEY and genai:
         try:
             genai.configure(api_key=GEMINI_API_KEY)
@@ -117,18 +114,18 @@ def moderate_image(image_url: str) -> dict:
                 return {
                     "classification": "safe",
                     "confidence": 0.9,
-                    "reasoning": "Resim yüklenemedi, varsayılan güvenli",
-                    "llm_response": "Resim yükleme hatası"
+                    "reasoning": "Image could not be loaded, defaulting to safe",
+                    "llm_response": "Image loading error"
                 }
             prompt = f"""
-            Bu resmi toksik, spam, taciz veya güvenli olarak sınıflandır. 
-            Yanıtı JSON formatında şu şekilde döndür:
+            Classify this image as toxic, spam, harassment, or safe.
+            Return the answer in JSON format as follows:
             {{
                 "classification": "toxic/spam/harassment/safe",
                 "confidence": 0.0-1.0,
-                "reasoning": "Gerekçe burada"
+                "reasoning": "Reason here"
             }}
-            Resim (base64): data:image/png;base64,{base64_image}
+            Image (base64): data:image/png;base64,{base64_image}
             """
             response = model.generate_content(prompt)
             llm_response = response.text
@@ -140,24 +137,25 @@ def moderate_image(image_url: str) -> dict:
                 "llm_response": llm_response
             }
         except Exception as e:
-            logger.error(f"Gemini hatası: {e}")
+            logger.error(f"Gemini error: {e}")
+            pass
     # Dummy fallback
     if "bad" in image_url:
-        return {"classification": "toxic", "confidence": 0.9, "reasoning": "URL'de bad geçti.", "llm_response": "..."}
-    return {"classification": "safe", "confidence": 0.9, "reasoning": "Resim güvenli.", "llm_response": "..."}
+        return {"classification": "toxic", "confidence": 0.9, "reasoning": "The word 'bad' was found in the URL.", "llm_response": "..."}
+    return {"classification": "safe", "confidence": 0.9, "reasoning": "Image is safe.", "llm_response": "..."}
 
 
 def send_notification(channel: str, message: str):
-    """Slack'e bildirim gönder veya logla"""
+    """Send notification to Slack or log it"""
     if channel == "slack":
         if SLACK_WEBHOOK:
             try:
                 response = requests.post(SLACK_WEBHOOK, json={"text": message})
                 response.raise_for_status()
-                logger.info(f"Slack bildirimi gönderildi: {message}")
+                logger.info(f"Slack notification sent: {message}")
             except Exception as e:
-                logger.error(f"Slack bildirimi gönderilemedi: {e}")
+                logger.error(f"Slack notification failed: {e}")
         else:
-            logger.warning("SLACK_WEBHOOK_URL .env'de tanımlı değil!")
+            logger.warning("SLACK_WEBHOOK_URL is not set in .env!")
     else:
         logger.info(f"[NOTIFY][{channel}] {message}")

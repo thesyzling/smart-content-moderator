@@ -17,11 +17,11 @@ def moderate_text_endpoint(req: ModerateTextRequest, db: Session = Depends(get_d
         result = service_moderate_text(req.text)
         create_result(db, request.id, result)
         if result["classification"] != "safe":
-            send_notification("slack", f"Uygunsuz içerik tespit edildi: {result['classification']} (Metin: {req.text})")
+            send_notification("slack", f"Inappropriate content detected: {result['classification']} (Text: {req.text})")
             create_notification_log(db, request.id, "slack", "sent")
         return ModerationResponse(**result)
     except IntegrityError:
-        raise HTTPException(status_code=409, detail="Bu içerik zaten daha önce moderasyon için gönderilmiş.")
+        raise HTTPException(status_code=409, detail="This content has already been submitted for moderation.")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -33,11 +33,11 @@ def moderate_image_endpoint(req: ModerateImageRequest, db: Session = Depends(get
         result = service_moderate_image(req.image_url)
         create_result(db, request.id, result)
         if result["classification"] != "safe":
-            send_notification("slack", f"Uygunsuz resim tespit edildi: {result['classification']} (URL: {req.image_url})")
+            send_notification("slack", f"Inappropriate image detected: {result['classification']} (URL: {req.image_url})")
             create_notification_log(db, request.id, "slack", "sent")
         return ModerationResponse(**result)
     except IntegrityError:
-        raise HTTPException(status_code=409, detail="Bu görsel zaten daha önce moderasyon için gönderilmiş.")
+        raise HTTPException(status_code=409, detail="This image has already been submitted for moderation.")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
