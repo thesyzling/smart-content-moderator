@@ -1,4 +1,5 @@
 
+
 import hashlib
 import os
 import requests
@@ -8,10 +9,15 @@ import logging
 try:
     import google.generativeai as genai
 except ImportError:
+    genai = None
+try:
+    import openai
+except ImportError:
     openai = None
 from PIL import Image
 import io
 import base64
+
 
 load_dotenv()
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
@@ -37,7 +43,7 @@ def image_to_base64(url: str) -> str:
         img.save(buffered, format="PNG")
         return base64.b64encode(buffered.getvalue()).decode()
     except Exception as e:
-        print(f"Image download error: {e}")
+        logger.error(f"Image download error: {e}")
         return ""
 
 
@@ -68,7 +74,6 @@ def moderate_text(text: str) -> dict:
             }
         except Exception as e:
             logger.error(f"Gemini error: {e}")
-            pass
     elif OPENAI_API_KEY and openai:
         try:
             openai.api_key = OPENAI_API_KEY
